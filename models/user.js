@@ -1,3 +1,5 @@
+const db = require("../db");
+
 /** User class for message.ly */
 
 const { BCRYPT_WORK_FACTOR, DB_URI } = require("../config");
