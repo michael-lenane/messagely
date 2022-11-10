@@ -22,10 +22,9 @@ class User {
         `,
         [username, hashedPassword, first_name, last_name, phone]
       );
-      const result = { user };
-      return result;
+      return user.rows[0];
     } catch (err) {
-      return next(err);
+      return next();
     }
   }
 
