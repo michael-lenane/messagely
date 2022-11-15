@@ -16,8 +16,8 @@ class User {
     const hashedPassword = await bcrypt.hash(password, BCRYPT_WORK_FACTOR);
     const user = await db.query(
       `
-        INSERT INTO users (username, password, first_name, last_name, phone)
-        VALUES ($1, $2, $3, $4, $5)
+        INSERT INTO users (username, password, first_name, last_name, phone, join_at, last_login_at)
+        VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         RETURNING username, password, first_name, last_name, phone
         `,
       [username, hashedPassword, first_name, last_name, phone]
@@ -72,9 +72,10 @@ class User {
       SELECT username, first_name, last_name, phone
       FROM users
       RETURNING username, first_name, last_name, phone
+      ORDER BY username
       `);
-    const userInfo = { users };
-    return userInfo;
+
+    return users.rows;
   }
 
   /** Get: get user by username
@@ -109,7 +110,35 @@ class User {
    *   {username, first_name, last_name, phone}
    */
 
-  static async messagesFrom(username) {}
+  static async messagesFrom(username) {
+    const result = await db.query(
+      `SELECT m.id,
+                m.to_username,
+                u.first_name,
+                u.last_name,
+                u.phone,
+                m.body,
+                m.sent_at,
+                m.read_at
+          FROM messages AS m
+            JOIN users AS u ON m.to_username = u.username
+          WHERE from_username = $1`,
+      [username]
+    );
+
+    return result.rows.map((m) => ({
+      id: m.id,
+      to_user: {
+        username: m.to_username,
+        first_name: m.first_name,
+        last_name: m.last_name,
+        phone: m.phone,
+      },
+      body: m.body,
+      sent_at: m.sent_at,
+      read_at: m.read_at,
+    }));
+  }
 
   /** Return messages to this user.
    *
@@ -119,7 +148,35 @@ class User {
    *   {username, first_name, last_name, phone}
    */
 
-  static async messagesTo(username) {}
+  static async messagesTo(username) {
+    const result = await db.query(
+      `SELECT m.id,
+              m.from_username,
+              u.first_name,
+              u.last_name,
+              u.phone,
+              m.body,
+              m.sent_at,
+              m.read_at
+        FROM messages AS m
+         JOIN users AS u ON m.from_username = u.username
+        WHERE to_username = $1`,
+      [username]
+    );
+
+    return result.rows.map((m) => ({
+      id: m.id,
+      from_user: {
+        username: m.from_username,
+        first_name: m.first_name,
+        last_name: m.last_name,
+        phone: m.phone,
+      },
+      body: m.body,
+      sent_at: m.sent_at,
+      read_at: m.read_at,
+    }));
+  }
 }
 
 module.exports = User;
