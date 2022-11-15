@@ -11,6 +11,18 @@
  *
  **/
 
+const { Router } = require("express");
+const Message = require("../models/message");
+
+Router.get("/:id", async function (req, res, next) {
+  try {
+    const id = req.params.id;
+    let messageDetail = await Message.getMessageById(id);
+    return res.json({ messageDetail });
+  } catch (err) {
+    return next(err);
+  }
+});
 
 /** POST / - post message.
  *
@@ -19,6 +31,15 @@
  *
  **/
 
+Router.post("/", async function (req, res, next) {
+  try {
+    const { from, to, body } = req.body;
+    let post = await Message.createMessage(from, to, body);
+    return res.json({ post });
+  } catch (err) {
+    return next(err);
+  }
+});
 
 /** POST/:id/read - mark message as read:
  *
@@ -27,4 +48,3 @@
  * Make sure that the only the intended recipient can mark as read.
  *
  **/
-
