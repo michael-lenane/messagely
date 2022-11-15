@@ -86,7 +86,20 @@ class User {
    *          join_at,
    *          last_login_at } */
 
-  static async get(username) {}
+  static async get(username) {
+    const result = await db.query(
+      `
+    SELECT username, first_name, last_name, phone, join_at, last_login_at
+    FROM users
+    WHERE username = $1
+    RETURNING username, first_name, last_name, phone, join_at, last_login_at`,
+      [username]
+    );
+    if (result) {
+      return result.rows[0];
+    }
+    return new ExpressError("Username not found", 404);
+  }
 
   /** Return messages from this user.
    *
