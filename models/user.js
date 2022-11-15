@@ -3,6 +3,7 @@ const db = require("../db");
 /** User class for message.ly */
 
 const { BCRYPT_WORK_FACTOR, DB_URI } = require("../config");
+const ExpressError = require("../expressError");
 
 /** User of the site. */
 
@@ -12,78 +13,68 @@ class User {
    */
 
   static async register({ username, password, first_name, last_name, phone }) {
-    try {
-      const hashedPassword = await bcrypt.hash(password, BCRYPT_WORK_FACTOR);
-      const user = await db.query(
-        `
+    const hashedPassword = await bcrypt.hash(password, BCRYPT_WORK_FACTOR);
+    const user = await db.query(
+      `
         INSERT INTO users (username, password, first_name, last_name, phone)
         VALUES ($1, $2, $3, $4, $5)
         RETURNING username, password, first_name, last_name, phone
         `,
-        [username, hashedPassword, first_name, last_name, phone]
-      );
+      [username, hashedPassword, first_name, last_name, phone]
+    );
+    if (user) {
       return user.rows[0];
-    } catch (err) {
-      return next();
     }
+    return new ExpressError("Password not authorized", 404);
   }
 
   /** Authenticate: is this username/password valid? Returns boolean. */
 
   static async authenticate(username, password) {
-    try {
-      const result = await db.query(
-        "SELECT password FROM users WHERE username = $1",
-        [username]
-      );
-      let user = result.rows[0];
+    const result = await db.query(
+      "SELECT password FROM users WHERE username = $1",
+      [username]
+    );
+    let user = result.rows[0];
 
-      if (user) {
-        if ((await bcrypt.compare(password, user.password)) === true) {
-          let token = jwt.sign({ username }, SECRET_KEY);
-          return res.json({ token });
-        }
+    if (user) {
+      if ((await bcrypt.compare(password, user.password)) === true) {
+        let token = jwt.sign({ username }, SECRET_KEY);
+        return res.json({ token });
       }
-      throw new ExpressError("Invalid user/password", 400);
-    } catch (err) {
-      return next();
     }
+    throw new ExpressError("Invalid user/password", 400);
   }
 
   /** Update last_login_at for user */
 
   static async updateLoginTimestamp(username) {
-    try {
-      const result = await db.query(
-        `
+    const result = await db.query(
+      `
         UPDATE users
         SET last_login_at = CURRENT_TIMESTAMP
         WHERE username = $1
         RETURNING username, last_login_at
         `,
-        [username]
-      );
+      [username]
+    );
+    if (result) {
       return result.rows[0];
-    } catch (err) {
-      return next(err);
     }
+    return new ExpressError("User not found", 404);
   }
 
   /** All: basic info on all users:
    * [{username, first_name, last_name, phone}, ...] */
 
   static async all() {
-    try {
-      const users = await db.query(`
+    const users = await db.query(`
       SELECT username, first_name, last_name, phone
       FROM users
       RETURNING username, first_name, last_name, phone
       `);
-      const userInfo = { users };
-      return userInfo;
-    } catch (err) {
-      return next(err);
-    }
+    const userInfo = { users };
+    return userInfo;
   }
 
   /** Get: get user by username
