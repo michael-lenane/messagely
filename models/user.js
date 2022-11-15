@@ -30,7 +30,25 @@ class User {
 
   /** Authenticate: is this username/password valid? Returns boolean. */
 
-  static async authenticate(username, password) {}
+  static async authenticate(username, password) {
+    try {
+      const result = await db.query(
+        "SELECT password FROM users WHERE username = $1",
+        [username]
+      );
+      let user = result.rows[0];
+
+      if (user) {
+        if ((await bcrypt.compare(password, user.password)) === true) {
+          let token = jwt.sign({ username }, SECRET_KEY);
+          return res.json({ token });
+        }
+      }
+      throw new ExpressError("Invalid user/password", 400);
+    } catch (err) {
+      return next();
+    }
+  }
 
   /** Update last_login_at for user */
 
