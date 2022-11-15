@@ -63,6 +63,7 @@ class User {
         `,
         [username]
       );
+      return result.rows[0];
     } catch (err) {
       return next(err);
     }
@@ -71,7 +72,19 @@ class User {
   /** All: basic info on all users:
    * [{username, first_name, last_name, phone}, ...] */
 
-  static async all() {}
+  static async all() {
+    try {
+      const users = await db.query(`
+      SELECT username, first_name, last_name, phone
+      FROM users
+      RETURNING username, first_name, last_name, phone
+      `);
+      const userInfo = { users };
+      return userInfo;
+    } catch (err) {
+      return next(err);
+    }
+  }
 
   /** Get: get user by username
    *
