@@ -40,11 +40,3 @@ Router.post("/", async function (req, res, next) {
     return next(err);
   }
 });
-
-/** POST/:id/read - mark message as read:
- *
- *  => {message: {id, read_at}}
- *
- * Make sure that the only the intended recipient can mark as read.
- *
- **/
